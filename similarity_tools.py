@@ -5,6 +5,8 @@ import itertools
 from scipy.sparse import hstack
 
 from sklearn.metrics.pairwise import pairwise_distances
+from sklearn.metrics.pairwise import cosine_distances
+
 def concatenate_csc_matrices_by_columns(matrix1, matrix2):
     new_data = np.concatenate((matrix1.data, matrix2.data))
     new_indices = np.concatenate((matrix1.indices, matrix2.indices))
@@ -49,8 +51,13 @@ def vectorize_texts(liste_texts, mini = 3, maxi=4):
 
 def get_similarity(info_img, liste_repr, has_opti=False):#IN : liste de tuples (NOM_vectorisation ,liste_vecteurs)
   """
+  IN: 2 listes
   info_img   : tuples PATH, liste_etiquettes
   liste_repr : tuples nom_repr, matrice
+  OUT: un dictionnaire qui associe
+  des combinaisons de représentations en entrée
+    à une matrice de similarité selon des mesures (définies en dur)
+      
   """
   nom_repr = [x[0] for x in liste_repr]
   liste_combis = get_combination(nom_repr)
@@ -60,8 +67,11 @@ def get_similarity(info_img, liste_repr, has_opti=False):#IN : liste de tuples (
   for combi in liste_combis:
     dic_out.setdefault(combi, {})
     X = concat_matrix(combi, liste_repr, has_opti)
-    for meth in ["braycurtis"]:
-      matrix = pairwise_distances(X, Y=None, metric=meth)
+    for meth in ["braycurtis", "cosine", "euclidean", "dice"]:
+      if meth =="cosine":
+        matrix = cosine_distances(X)
+      else:
+        matrix = pairwise_distances(X, Y=None, metric=meth)
       dic_out[combi][meth] = matrix
   #prevoir vecteurs vides
   #OUT : {combi : {meth:X}}
@@ -78,4 +88,5 @@ if __name__=="__main__":
 
   etiq = ["good", "bad", "ugly"]
   infos_imgs  = [[texts[i], etiq[i], []] for i in range(len(texts))]
-  get_similarity(infos_imgs, liste_reprs)
+  for config, dic_metric in get_similarity(infos_imgs, liste_reprs).items():
+    print(config, dic_metric)
