@@ -2,8 +2,19 @@ from scipy import spatial
 from sklearn.feature_extraction.text import CountVectorizer
 #import sklearn
 import itertools
+from scipy.sparse import hstack
 
 from sklearn.metrics.pairwise import pairwise_distances
+def concatenate_csc_matrices_by_columns(matrix1, matrix2):
+    new_data = np.concatenate((matrix1.data, matrix2.data))
+    new_indices = np.concatenate((matrix1.indices, matrix2.indices))
+    new_ind_ptr = matrix2.indptr + len(matrix1.data)
+    new_ind_ptr = new_ind_ptr[1:]
+    new_ind_ptr = np.concatenate((matrix1.indptr, new_ind_ptr))
+
+    return csc_matrix((new_data, new_indices, new_ind_ptr))
+
+
 def get_combination(names):
   """ Returns all combination of names"""
   liste_possible = []
@@ -13,21 +24,30 @@ def get_combination(names):
   liste_possible = [x for x in liste_possible if len(x)>0]
   return sorted(liste_possible)
 
-def concat_matrix(combi_names, liste_repr):
-  X = []
+def concat_matrix(combi_names, liste_repr, has_opti = False):
+  #TODO: has_opti est-il utile ?
+  #concat lente si grosse matrice ? cf : https://stackoverflow.com/questions/6844998/is-there-an-efficient-way-of-concatenating-scipy-sparse-matrices/33259578#33259578
+  #NB: ne fonctionne pas pour le moment: 'function' object has no attribute 'toarray'
+  i = 0 
   for name, matrix in liste_repr:
     if name not in combi_names:
       continue
-    else: 
-      X= matrix.toarray()
-  return X
+    elif i ==0:
+      X = matrix
+    else:
+      if has_opti == True:
+        X = concatenate_csc_matrices_by_columns 
+      else:
+        X = hstack((X, matrix))
+    i+=1
+  return X.toarray()
 
 def vectorize_texts(liste_texts, mini = 3, maxi=4):
   V = CountVectorizer(analyzer="char", ngram_range=(mini, maxi))
   X = V.fit_transform(liste_texts)
   return X
 
-def get_similarity(info_img, liste_repr):#IN : liste de tuples (NOM_vectorisation ,liste_vecteurs)
+def get_similarity(info_img, liste_repr, has_opti=False):#IN : liste de tuples (NOM_vectorisation ,liste_vecteurs)
   """
   info_img   : tuples PATH, liste_etiquettes
   liste_repr : tuples nom_repr, matrice
@@ -39,7 +59,7 @@ def get_similarity(info_img, liste_repr):#IN : liste de tuples (NOM_vectorisatio
   dic_out = {}
   for combi in liste_combis:
     dic_out.setdefault(combi, {})
-    X = concat_matrix(combi, liste_repr)
+    X = concat_matrix(combi, liste_repr, has_opti)
     for meth in ["braycurtis"]:
       matrix = pairwise_distances(X, Y=None, metric=meth)
       dic_out[combi][meth] = matrix
@@ -58,4 +78,4 @@ if __name__=="__main__":
 
   etiq = ["good", "bad", "ugly"]
   infos_imgs  = [[texts[i], etiq[i], []] for i in range(len(texts))]
-  print(get_similarity(infos_imgs, liste_reprs))
+  get_similarity(infos_imgs, liste_reprs)
