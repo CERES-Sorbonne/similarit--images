@@ -1,6 +1,6 @@
 import json
 
-def  evaluate_one_object(res):
+def evaluate_one_object(res):
   dic_res = { 0: {i: {"VP":0, "FP":0, "FN":0} for i in range(1,len(res)+1)},
               1: {i: {"VP":0, "FP":0, "FN":0} for i in range(1,len(res)+1)}}
   etiq_ref = res[0][1][1]#le premier élément c'est l'image elle même
@@ -59,6 +59,7 @@ def compute_RPF(dic):
 def evaluate_sim_methods(sim_data, out_name= "results_RPF.json"):
   #ajouter évaluation seuil ?
   D = {}
+  bests = []
   for config_name, dic_config in sim_data.items():
     print(config_name)
     config_name = str(config_name)
@@ -68,19 +69,25 @@ def evaluate_sim_methods(sim_data, out_name= "results_RPF.json"):
       D[config_name].setdefault(meth_name, {})
       res = evaluate_tag_list(liste_res)
       for level, dic_level in res.items():
-        print("  ",level)
         rangs = sorted(dic_level.keys())
         l_F = []
         all_res = []
         for rang in rangs:
-          R, P, F = compute_RPF(dic_level[rang])
+          R, P, F = [round(x, 4) for x in compute_RPF(dic_level[rang])]
           all_res.append({"R":R, "P":P, "F":F})
           l_F.append(round(F, 4))
-        print(" F-mes",l_F)
+        print(f"  level={level} F-mes",l_F[:5])
+        bests.append([l_F[9], config_name, meth_name, all_res[9]])
         D[config_name][meth_name][level] = all_res
+  print("-"*20)
+  print("5 bests accoring to f-measure on 10 first")
+  print("F-meas \t repr \t similarity measure \t R and P")
+  for line in sorted(bests, reverse = True)[:5]:
+    print("\t".join([str(x) for x in line]))
+  print("-"*20)
   with open(out_name, "w") as w:
     w.write(json.dumps(D, indent =2))
-  print(f"Results written in : {out_name}")
+  print(f"All evaluation results written in : {out_name}")
 
 if __name__=="__main__":
   import pickle
