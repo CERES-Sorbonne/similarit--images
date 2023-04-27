@@ -59,7 +59,7 @@ def compute_RPF(dic):
 def evaluate_sim_methods(sim_data, out_name= "results_RPF.json"):
   #ajouter évaluation seuil ?
   D = {}
-  bests = []
+  bests = [[], []]
   for config_name, dic_config in sim_data.items():
     print(config_name)
     config_name = str(config_name)
@@ -77,14 +77,16 @@ def evaluate_sim_methods(sim_data, out_name= "results_RPF.json"):
           all_res.append({"R":R, "P":P, "F":F})
           l_F.append(round(F, 4))
         print(f"  level={level} F-mes",l_F[:5])
-        bests.append([l_F[9], config_name, meth_name, all_res[9]])
+        bests[level].append([l_F[9], config_name, meth_name, all_res[9]])
         D[config_name][meth_name][level] = all_res
   print("-"*20)
   print("5 bests accoring to f-measure on 10 first")
-  print("F-meas \t repr \t similarity measure \t R and P")
-  for line in sorted(bests, reverse = True)[:5]:
-    print("\t".join([str(x) for x in line]))
-  print("-"*20)
+  for level, best_level in enumerate(bests):
+    print(f"for level {level}")
+    print("F-meas \t repr \t similarity measure \t R and P")
+    for line in sorted(best_level, reverse = True)[:5]:
+      print("\t".join([str(x) for x in line]))
+    print("-"*20)
   with open(out_name, "w") as w:
     w.write(json.dumps(D, indent =2))
   print(f"All evaluation results written in : {out_name}")
