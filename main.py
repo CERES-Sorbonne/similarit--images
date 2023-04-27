@@ -15,8 +15,10 @@ VECTOR_LIST = ["dic_ocr.json", "dic_vec_no_pca.pkl", "dic_vec_pca_10.pkl", "dic_
 def load_vectors(vector_list):
     """
     Prend une liste de fichiers de vecteurs en entrée, load les pickle et retourne un dictionnaire du type:
-    nom_type_vecteur -> {
-        image -> vecteur
+    { nom_type_vecteur ->
+        {
+            image -> vecteur
+        }
     }
     """
     vectors_dic = {}
@@ -69,7 +71,7 @@ def _init_matrices(vectors_dic):
         first_element = vector_dic[first_key]
         if scipy.sparse.issparse(first_element):
             type = "sparse"
-            obj = scipy.sparse.csr_matrix(first_element.shape, dtype=numpy.int64)
+            obj = None
         else:
             type = "matrix"
             obj = []
@@ -106,7 +108,10 @@ def create_ground_truth(vectors_dics):
             for matrix in matrices:
                 vectors_dic = vectors_dics[matrix['name']]
                 if matrix['type'] == 'sparse':
-                    matrix['obj'] = scipy.sparse.vstack((matrix['obj'], vectors_dic[dic_key]))
+                    if matrix['obj'] is None:
+                        matrix['obj'] = vectors_dic[dic_key]
+                    else:
+                        matrix['obj'] = scipy.sparse.vstack((matrix['obj'], vectors_dic[dic_key]))
                 else:
                     matrix['obj'].append(vectors_dic[dic_key])
 
@@ -167,7 +172,8 @@ def load_ground_truth(ground_truth_path):
             matrix[1] = numpy.load(matrix[1])
     return ground_truth
 
+
 if __name__ == "__main__":
-    # persist_ground_truth()
+    persist_ground_truth()
     ground_truth = load_ground_truth('ground_truth.json')
     print("fini")
